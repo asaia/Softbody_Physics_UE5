@@ -2,8 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "ASoftbody.h"
-#include "ASolver.generated.h"
+#include "SoftbodyObject.h"
+#include "Solver.generated.h"
 
 UCLASS()
 class SOFTBODY_API ASolver : public AActor
@@ -12,7 +12,7 @@ class SOFTBODY_API ASolver : public AActor
 	
 public:	
 	UPROPERTY(EditAnywhere)
-	TArray<ASoftbody*> Bodies;
+	TArray<ASoftbodyObject*> Bodies;
 
 	UPROPERTY(EditAnywhere)
 	int32 NumSubsteps;

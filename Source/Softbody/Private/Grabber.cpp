@@ -1,26 +1,26 @@
-#include "AGrabber.h"
-#include "ASoftbody.h"
+#include "Grabber.h"
+#include "SoftbodyObject.h"
 
-AAGrabber::AAGrabber()
+AGrabber::AGrabber()
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void AAGrabber::BeginPlay()
+void AGrabber::BeginPlay()
 {
 	Super::BeginPlay();	
 	Target = nullptr;
 	Controller = GetWorld()->GetFirstPlayerController();
-	if (Controller != NULL)
+	if (Controller)
 	{
 		Controller->bShowMouseCursor = true;
 	}
 }
 
-void AAGrabber::Tick(float DeltaTime)
+void AGrabber::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (Controller == NULL)
+	if (!Controller)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Grabber could not find a player controller"));
 		return;
@@ -37,8 +37,7 @@ void AAGrabber::Tick(float DeltaTime)
 			CollisionQuery.bReturnFaceIndex = true;
 			if (GetWorld()->LineTraceSingleByChannel(hit, WorldOrigin, WorldOrigin + WorldDirection * 100000, ECollisionChannel::ECC_Visibility, CollisionQuery))
 			{
-				ASoftbody* Body = Cast<ASoftbody>(hit.GetActor());
-				if (Body)
+				if (ASoftbodyObject* Body = Cast<ASoftbodyObject>(hit.GetActor()))
 				{
 					Distance = hit.Distance;
 					PrevPos = WorldOrigin + WorldDirection * Distance;

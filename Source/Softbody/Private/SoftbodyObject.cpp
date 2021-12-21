@@ -1,7 +1,7 @@
-#include "ASoftbody.h"
+#include "SoftbodyObject.h"
 #include "ProceduralMeshComponent.h"
 
-ASoftbody::ASoftbody()
+ASoftbodyObject::ASoftbodyObject()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -10,7 +10,7 @@ ASoftbody::ASoftbody()
 	ProceduralMesh->bUseAsyncCooking = true;
 }
 
-void ASoftbody::BeginPlay()
+void ASoftbodyObject::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -62,7 +62,7 @@ void ASoftbody::BeginPlay()
 	}
 }
 
-void ASoftbody::CalculateNormals()
+void ASoftbodyObject::CalculateNormals()
 {
 	for (int i = 0; i < Triangles.Num(); i += 3)
 	{
@@ -74,7 +74,7 @@ void ASoftbody::CalculateNormals()
 		FVector P2 = Pos[Index2];
 		FVector P3 = Pos[Index3];
 
-		FVector normal = FVector::CrossProduct(P2 - P1, P3 - P1) * -1; //TODO: why do I need to flip? Is this wrong?
+		FVector normal = FVector::CrossProduct(P3 - P1, P2 - P1);
 		normal.Normalize();
 
 		Normals[Index1] = normal;
@@ -83,7 +83,7 @@ void ASoftbody::CalculateNormals()
 	}
 }
 
-float ASoftbody::GetTetVolume(int Nr)
+float ASoftbodyObject::GetTetVolume(int Nr)
 {
 	int Id0 = TetIds[4 * Nr];
 	int Id1 = TetIds[4 * Nr + 1];
@@ -97,7 +97,7 @@ float ASoftbody::GetTetVolume(int Nr)
 	return FVector::DotProduct(Temp[3], Temp[2]) / 6.0;
 }
 
-void ASoftbody::PreSolve(float DeltaTime, FVector Gravity)
+void ASoftbodyObject::PreSolve(float DeltaTime, FVector Gravity)
 {
 	for (int i = 0; i < NumParticles; i++)
 	{
@@ -121,13 +121,13 @@ void ASoftbody::PreSolve(float DeltaTime, FVector Gravity)
 	}
 }
 
-void ASoftbody::Solve(float DeltaTime)
+void ASoftbodyObject::Solve(float DeltaTime)
 {
 	SolveEdges(EdgeCompliance, DeltaTime);
 	SolveVolumes(VolCompliance, DeltaTime);
 }
 
-void ASoftbody::PostSolve(float DeltaTime)
+void ASoftbodyObject::PostSolve(float DeltaTime)
 {
 	for (int i = 0; i < NumParticles; i++)
 	{
@@ -139,7 +139,7 @@ void ASoftbody::PostSolve(float DeltaTime)
 	}
 }
 
-void ASoftbody::SolveEdges(float Compliance, float DeltaTime)
+void ASoftbodyObject::SolveEdges(float Compliance, float DeltaTime)
 {
 	float alpha = Compliance / DeltaTime / DeltaTime;
 
@@ -150,12 +150,13 @@ void ASoftbody::SolveEdges(float Compliance, float DeltaTime)
 		float w0 = InvMass[id0];
 		float w1 = InvMass[id1];
 		float w = w0 + w1;
-		if (w == 0.0)
+	
+		if (FMath::IsNearlyEqual(w, 0.0f))
 			continue;
 
 		Grads[0] = Pos[id0] - Pos[id1];
 		float len = FMath::Sqrt(Grads[0].SizeSquared());
-		if (len == 0.0f)
+		if (FMath::IsNearlyEqual(len, 0.0f))
 		{
 			continue;
 		}
@@ -169,7 +170,7 @@ void ASoftbody::SolveEdges(float Compliance, float DeltaTime)
 	}
 }
 
-void ASoftbody::SolveVolumes(float Compliance, float DeltaTime)
+void ASoftbodyObject::SolveVolumes(float Compliance, float DeltaTime)
 {
 	float alpha = Compliance / DeltaTime / DeltaTime;
 	for (int i = 0; i < NumTets; i++)
@@ -189,7 +190,8 @@ void ASoftbody::SolveVolumes(float Compliance, float DeltaTime)
 
 			w += InvMass[TetIds[4 * i + j]] * Grads[j].SizeSquared();
 		}
-		if (w == 0.0)
+
+		if (FMath::IsNearlyEqual(w, 0.0f))
 			continue;
 
 		float vol = GetTetVolume(i);
@@ -205,7 +207,7 @@ void ASoftbody::SolveVolumes(float Compliance, float DeltaTime)
 	}
 }
 
-void ASoftbody::CreateProceduralMesh(FTetMesh* TetMeshData)
+void ASoftbodyObject::CreateProceduralMesh(FTetMesh* TetMeshData)
 {
 	NumParticles = TetMeshData->verts.Num() / 3;
 	Pos.Init(FVector::ZeroVector, NumParticles);
@@ -234,7 +236,7 @@ void ASoftbody::CreateProceduralMesh(FTetMesh* TetMeshData)
 	ProceduralMesh->SetMaterial(0, Material);
 }
 
-void ASoftbody::StartGrab(FVector Point, int FaceID)
+void ASoftbodyObject::StartGrab(FVector Point, int FaceID)
 {
 	Point = GetTransform().InverseTransformPosition(Point);
 
@@ -255,7 +257,7 @@ void ASoftbody::StartGrab(FVector Point, int FaceID)
 	Pos[GrabId] = Point;
 }
 
-void ASoftbody::MovedGrabbed(FVector GrabPos)
+void ASoftbodyObject::MovedGrabbed(FVector GrabPos)
 {
 	if (GrabId >= 0)
 	{
@@ -264,14 +266,14 @@ void ASoftbody::MovedGrabbed(FVector GrabPos)
 	}
 }
 
-void ASoftbody::EndGrab(FVector GrabVel)
+void ASoftbodyObject::EndGrab(FVector GrabVel)
 {
 	InvMass[GrabId] = GrabInvMass;
 	Vel[GrabId] = GrabVel;
 	GrabId = -1;
 }
 
-void ASoftbody::Tick(float DeltaTime)
+void ASoftbodyObject::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -279,9 +281,12 @@ void ASoftbody::Tick(float DeltaTime)
 	ProceduralMesh->UpdateMeshSection_LinearColor(0, Pos, Normals, TArray<FVector2D>(), TArray<FLinearColor>(), TArray<FProcMeshTangent>());
 }
 
-void ASoftbody::OnConstruction(const FTransform& Transform)
+void ASoftbodyObject::OnConstruction(const FTransform& Transform)
 {
-	FTetMesh* tetMeshData = TetMesh->FindRow<FTetMesh>(TetMesh->GetRowNames()[0], TEXT("GENERAL"));
-	CreateProceduralMesh(tetMeshData);
+	if (TetMesh)
+	{
+		FTetMesh* tetMeshData = TetMesh->FindRow<FTetMesh>(TetMesh->GetRowNames()[0], TEXT("GENERAL"));
+		CreateProceduralMesh(tetMeshData);
+	}
 }
 

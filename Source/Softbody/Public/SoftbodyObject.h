@@ -4,10 +4,10 @@
 #include "GameFramework/Actor.h"
 #include "Engine/DataTable.h"
 #include "ProceduralMeshComponent.h"
-#include "ASoftbody.generated.h"
+#include "SoftbodyObject.generated.h"
 
 UCLASS()
-class SOFTBODY_API ASoftbody : public AActor
+class SOFTBODY_API ASoftbodyObject : public AActor
 {
 	GENERATED_BODY()
 	
@@ -24,7 +24,7 @@ public:
 	UPROPERTY(EditAnywhere)
 	float VolCompliance = 0.0;
 
-	ASoftbody();
+	ASoftbodyObject();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
